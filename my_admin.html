@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Моя админка - Статистика Мамуки</title>
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f0f2f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3c8b, #0a1f4a);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        @media (min-width: 600px) {
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            width: fit-content;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        @media (min-width: 600px) {
+            .stats-grid {
+                gap: 20px;
+            }
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card .label {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e3c8b;
+        }
+        
+        .stat-card .sub {
+            color: #28a745;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 0 -20px;
+            padding: 0 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 500px;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 12px 10px;
+            text-align: left;
+            color: #555;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .control-panel {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .control-panel h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .toggle-btn {
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+        
+        @media (min-width: 600px) {
+            .toggle-btn {
+                width: auto;
+                padding: 15px 30px;
+                font-size: 18px;
+            }
+        }
+        
+        .toggle-btn.on {
+            background: #28a745;
+            color: white;
+        }
+        
+        .toggle-btn.off {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .danger-zone {
+            margin-top: 30px;
+            border: 2px solid #dc3545;
+            border-radius: 15px;
+            padding: 20px;
+            background: #fff5f5;
+        }
+        
+        .danger-zone h3 {
+            color: #dc3545;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .danger-btn {
+            width: 100%;
+            padding: 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        
+        .danger-btn:hover {
+            background: #b02a37;
+        }
+        
+        .note {
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Статистика шаурмичной Мамуки</h1>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+
+        <!-- Блок управления сайтом -->
+        <div class="control-panel">
+            <h3>⚡ Управление сайтом</h3>
+            <button id="siteToggleBtn" class="toggle-btn" onclick="toggleSite()">Загрузка...</button>
+            <p style="margin-top: 15px; color: #666;" id="siteStatusText"></p>
+        </div>
+
+        <!-- Статистика за сегодня (3 карточки) -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Заказов сегодня</div>
+                <div class="value" id="todayCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Выручка сегодня</div>
+                <div class="value" id="todaySum">0</div>
+                <div class="sub">BYN</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Выполнено</div>
+                <div class="value" id="completedCount">0</div>
+            </div>
+        </div>
+
+        <!-- Заказы за сегодня -->
+        <div class="section">
+            <h2>📋 Заказы за сегодня</h2>
+            <div class="table-wrapper">
+                <table id="todayOrdersTable">
+                    <thead>
+                        <tr>
+                            <th>№ заказа</th>
+                            <th>Время</th>
+                            <th>Состав</th>
+                            <th>Сумма</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="todayOrdersBody">
+                        <tr><td colspan="5" style="text-align: center;">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- История по дням -->
+        <div class="section">
+            <h2>📅 История по дням</h2>
+            <div class="table-wrapper">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Заказов</th>
+                            <th>Выручка</th>
+                            <th>Выполнено</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="4" style="text-align: center;">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ОПАСНАЯ ЗОНА - СБРОС -->
+        <div class="danger-zone">
+            <h3>⚠️ ОПАСНАЯ ЗОНА</h3>
+            <button class="danger-btn" onclick="confirmResetArchive()">
+                🧹 СБРОСИТЬ ВСЕ ЗАКАЗЫ
+            </button>
+            <p class="note">
+                Удалит все заказы: активные, архив, статистику. Настройки сайта останутся.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Проверка авторизации
+        if (!sessionStorage.getItem('myAdminAuth')) {
+            window.location.href = 'my_admin_login.html';
+        }
+
+        // Меню и добавки для отображения
+        let menuItems = [];
+        let addons = [];
+        let allOrders = [];
+
+        // ============================================
+        // ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE
+        // ============================================
+
+        async function loadMenu() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('menu')
+                    .select('*')
+                    .eq('is_available', true);
+                
+                if (error) throw error;
+                menuItems = data || [];
+            } catch (e) {
+                console.error('Ошибка загрузки меню:', e);
+            }
+        }
+
+        async function loadAddons() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('addons')
+                    .select('*')
+                    .eq('is_available', true);
+                
+                if (error) throw error;
+                addons = data || [];
+            } catch (e) {
+                console.error('Ошибка загрузки добавок:', e);
+            }
+        }
+
+        async function loadAllOrders() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                allOrders = data || [];
+                renderStats();
+            } catch (e) {
+                console.error('Ошибка загрузки заказов:', e);
+            }
+        }
+
+        // ============================================
+        // СТАТИСТИКА
+        // ============================================
+
+        function renderStats() {
+            const today = new Date().toDateString();
+            
+            // Заказы за сегодня
+            const todayOrders = allOrders.filter(o => {
+                const orderDate = new Date(o.created_at).toDateString();
+                return orderDate === today;
+            });
+            
+            const todayCount = todayOrders.length;
+            const todaySum = todayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+            const completedToday = todayOrders.filter(o => o.status === 'completed').length;
+            
+            // Обновляем карточки
+            document.getElementById('todayCount').textContent = todayCount;
+            document.getElementById('todaySum').textContent = todaySum.toFixed(2);
+            document.getElementById('completedCount').textContent = completedToday;
+            
+            // Таблица заказов за сегодня
+            let todayHtml = '';
+            todayOrders.forEach(order => {
+                const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                // Состав заказа
+                let itemsStr = '';
+                order.items.forEach(item => {
+                    const menuItem = menuItems.find(m => m.id === item.id);
+                    itemsStr += `${menuItem ? menuItem.name : 'Шаурма'} x${item.quantity}, `;
+                });
+                
+                if (order.addons && order.addons.length > 0) {
+                    itemsStr += 'Добавки: ';
+                    order.addons.forEach(addonId => {
+                        const addon = addons.find(a => a.id === addonId);
+                        if (addon) itemsStr += addon.name + ', ';
+                    });
+                }
+                
+                itemsStr = itemsStr.slice(0, -2);
+                
+                const statusClass = order.status === 'completed' ? 'status-completed' : '';
+                const statusText = order.status === 'completed' ? 'Выполнено' : 
+                                 (order.status === 'pending' ? 'Ожидается' : 
+                                 (order.status === 'preparing' ? 'Готовится' : 'Готово'));
+                
+                todayHtml += `
+                    <tr>
+                        <td>#${order.order_number}</td>
+                        <td>${time}</td>
+                        <td>${itemsStr}</td>
+                        <td>${order.total} BYN</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('todayOrdersBody').innerHTML = todayHtml || '<tr><td colspan="5" style="text-align: center;">Нет заказов</td></tr>';
+            
+            // История по дням
+            const history = {};
+            allOrders.forEach(order => {
+                const date = new Date(order.created_at).toLocaleDateString('ru-RU');
+                if (!history[date]) {
+                    history[date] = { count: 0, sum: 0, completed: 0 };
+                }
+                history[date].count++;
+                history[date].sum += order.total;
+                if (order.status === 'completed') {
+                    history[date].completed++;
+                }
+            });
+            
+            let historyHtml = '';
+            Object.keys(history).sort().reverse().forEach(date => {
+                historyHtml += `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${history[date].count}</td>
+                        <td>${history[date].sum.toFixed(2)} BYN</td>
+                        <td>${history[date].completed}</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('historyBody').innerHTML = historyHtml || '<tr><td colspan="4" style="text-align: center;">Нет данных</td></tr>';
+        }
+
+        // ============================================
+        // УПРАВЛЕНИЕ САЙТОМ
+        // ============================================
+
+        function updateSiteToggleButton() {
+            const isOff = localStorage.getItem('siteOff') === 'true';
+            const btn = document.getElementById('siteToggleBtn');
+            const statusText = document.getElementById('siteStatusText');
+            
+            if (isOff) {
+                btn.textContent = '🔴 САЙТ ОТКЛЮЧЕН';
+                btn.className = 'toggle-btn off';
+                statusText.textContent = 'Сейчас сайт не работает. Клиенты видят заглушку.';
+            } else {
+                btn.textContent = '🟢 САЙТ РАБОТАЕТ';
+                btn.className = 'toggle-btn on';
+                statusText.textContent = 'Сайт доступен для заказов.';
+            }
+        }
+
+        function toggleSite() {
+            const current = localStorage.getItem('siteOff') === 'true';
+            localStorage.setItem('siteOff', (!current).toString());
+            updateSiteToggleButton();
+        }
+
+        // ============================================
+        // СБРОС ЗАКАЗОВ (ДЛЯ ТЕСТОВ)
+        // ============================================
+
+        async function confirmResetArchive() {
+            const firstConfirm = confirm('🔥 ТОЧНО СБРОСИТЬ?\n\nУдалятся ВСЕ заказы из БД!\n\nНастройки сайта останутся.');
+            
+            if (!firstConfirm) return;
+            
+            const secondConfirm = confirm('⚠️ ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ!\n\nЭто действие нельзя отменить. Все заказы исчезнут навсегда из базы данных.\n\nТочно продолжаем?');
+            
+            if (!secondConfirm) return;
+            
+            try {
+                // Удаляем все заказы из таблицы orders
+                const { error } = await supabaseClient
+                    .from('orders')
+                    .delete()
+                    .neq('id', 0); // удаляем все записи
+                
+                if (error) throw error;
+                
+                alert('✅ Все заказы удалены из базы данных!');
+                
+                // Перезагружаем статистику
+                await loadAllOrders();
+                
+            } catch (e) {
+                console.error('Ошибка при сбросе:', e);
+                alert('❌ Ошибка при удалении заказов: ' + e.message);
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('myAdminAuth');
+            window.location.href = 'my_admin_login.html';
+        }
+
+        // ============================================
+        // ПОЛЛИНГ
+        // ============================================
+
+        function startPolling() {
+            setInterval(async () => {
+                await loadAllOrders();
+            }, 3000);
+        }
+
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
+
+        async function init() {
+            await loadMenu();
+            await loadAddons();
+            await loadAllOrders();
+            startPolling();
+        }
+
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            init();
+        } else {
+            console.error('Supabase не подключен');
+            setTimeout(() => {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    init();
+                }
+            }, 1000);
+        }
+
+        // Загружаем состояние кнопки сайта
+        updateSiteToggleButton();
+    </script>
+</body>
+</html>

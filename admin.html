@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админка - Мамука</title>
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: #8b1e1e;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .order-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #ddd;
+        }
+        
+        .order-card.pending {
+            border-left-color: #c62828;
+        }
+        
+        .order-card.preparing {
+            border-left-color: #f57c00;
+        }
+        
+        .order-card.ready {
+            border-left-color: #2e7d32;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .order-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .order-time {
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+        
+        .order-items {
+            margin: 15px 0;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .order-addons {
+            font-size: 14px;
+            color: #f57c00;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .order-comment {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        
+        .order-payment {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .order-total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #8b1e1e;
+            margin: 10px 0;
+            text-align: right;
+        }
+        
+        .status-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin: 15px 0;
+        }
+        
+        .status-btn {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            font-size: 12px;
+        }
+        
+        .status-btn.pending {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-btn.preparing {
+            background: #fff8e1;
+            color: #f57c00;
+        }
+        
+        .status-btn.ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .status-btn.active {
+            border: 2px solid #333;
+        }
+        
+        .complete-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        
+        .complete-btn:hover {
+            background: #388e3c;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 10px;
+            color: #666;
+        }
+        
+        .archive-section {
+            margin-top: 40px;
+        }
+        
+        .archive-header {
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .archive-content {
+            display: none;
+        }
+        
+        .archive-content.show {
+            display: block;
+        }
+        
+        .archived-order {
+            opacity: 0.7;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🥙 ПАНЕЛЬ УПРАВЛЕНИЯ - МАМУКА</h1>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+        
+        <div id="activeOrders"></div>
+        
+        <div class="archive-section">
+            <div class="archive-header" onclick="toggleArchive()">
+                <span>📦 Архив выполненных заказов</span>
+                <span id="archiveArrow">▼</span>
+            </div>
+            <div class="archive-content" id="archiveContent">
+                <div id="archiveOrders"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Проверка авторизации
+        if (!sessionStorage.getItem('adminAuth')) {
+            window.location.href = 'admin_login.html';
+        }
+        
+        // Меню и добавки для отображения
+        let menuItems = [];
+        let addons = [];
+        let orders = [];
+        
+        // ============================================
+        // ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE
+        // ============================================
+        
+        async function loadMenu() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('menu')
+                    .select('*')
+                    .eq('is_available', true);
+                
+                if (error) throw error;
+                menuItems = data || [];
+            } catch (e) {
+                console.error('Ошибка загрузки меню:', e);
+            }
+        }
+        
+        async function loadAddons() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('addons')
+                    .select('*')
+                    .eq('is_available', true);
+                
+                if (error) throw error;
+                addons = data || [];
+            } catch (e) {
+                console.error('Ошибка загрузки добавок:', e);
+            }
+        }
+        
+        async function loadOrders() {
+            try {
+                // В админке показываем ВСЕ заказы
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                orders = data || [];
+                renderOrders();
+            } catch (e) {
+                console.error('Ошибка загрузки заказов:', e);
+            }
+        }
+        
+        // ============================================
+        // ОБНОВЛЕНИЕ СТАТУСОВ
+        // ============================================
+        
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const { error } = await supabaseClient
+                    .from('orders')
+                    .update({ status: newStatus, updated_at: new Date().toISOString() })
+                    .eq('id', orderId);
+                
+                if (error) throw error;
+                
+                // Перезагружаем заказы
+                await loadOrders();
+            } catch (e) {
+                console.error('Ошибка обновления статуса:', e);
+                alert('Не удалось обновить статус');
+            }
+        }
+        
+        async function completeOrder(orderId) {
+            try {
+                const { error } = await supabaseClient
+                    .from('orders')
+                    .update({ status: 'completed', updated_at: new Date().toISOString() })
+                    .eq('id', orderId);
+                
+                if (error) throw error;
+                
+                await loadOrders();
+            } catch (e) {
+                console.error('Ошибка завершения заказа:', e);
+                alert('Не удалось завершить заказ');
+            }
+        }
+        
+        // ============================================
+        // РЕНДЕР
+        // ============================================
+        
+        function renderOrders() {
+            const activeOrders = orders.filter(o => o.status !== 'completed');
+            const archivedOrders = orders.filter(o => o.status === 'completed');
+            
+            const activeContainer = document.getElementById('activeOrders');
+            
+            if (activeOrders.length === 0) {
+                activeContainer.innerHTML = '<div class="empty-state">🥙 Нет активных заказов. Ждем студентов...</div>';
+            } else {
+                let html = '<div class="orders-grid">';
+                activeOrders.forEach(order => {
+                    html += renderOrderCard(order);
+                });
+                html += '</div>';
+                activeContainer.innerHTML = html;
+            }
+            
+            const archiveContainer = document.getElementById('archiveOrders');
+            
+            if (archivedOrders.length === 0) {
+                archiveContainer.innerHTML = '<div class="empty-state">📭 Архив пуст</div>';
+            } else {
+                let html = '<div class="orders-grid">';
+                archivedOrders.forEach(order => {
+                    html += renderOrderCard(order, true);
+                });
+                html += '</div>';
+                archiveContainer.innerHTML = html;
+            }
+        }
+        
+        function renderOrderCard(order, isArchived = false) {
+            let statusClass = 'pending';
+            let statusText = 'Ожидается';
+            
+            if (order.status === 'preparing') {
+                statusClass = 'preparing';
+                statusText = 'Готовится';
+            } else if (order.status === 'ready') {
+                statusClass = 'ready';
+                statusText = 'Готово';
+            } else if (order.status === 'completed') {
+                statusClass = 'ready';
+                statusText = 'Выполнено';
+            }
+            
+            const orderTime = new Date(order.created_at);
+            const timeString = orderTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            
+            let html = `
+                <div class="order-card ${order.status === 'completed' ? 'archived-order' : statusClass}">
+                    <div class="order-header">
+                        <span class="order-number">#${order.order_number}</span>
+                        <span class="order-time">${timeString}</span>
+                    </div>
+                    <div class="order-items">
+            `;
+            
+            order.items.forEach(item => {
+                const menuItem = menuItems.find(m => m.id === item.id);
+                html += `
+                    <div class="order-item">
+                        <span>${menuItem ? menuItem.name : 'Шаурма'} x${item.quantity}</span>
+                        <span>${menuItem ? menuItem.price * item.quantity : 0} BYN</span>
+                    </div>
+                `;
+            });
+            
+            if (order.addons && order.addons.length > 0) {
+                html += '<div class="order-addons">➕ Добавки: ';
+                const addonNames = order.addons.map(addonId => {
+                    const addon = addons.find(a => a.id === addonId);
+                    return addon ? addon.name + (addon.price > 0 ? ' (+' + addon.price + ' BYN)' : '') : '';
+                }).filter(Boolean).join(', ');
+                html += addonNames;
+                html += '</div>';
+            }
+            
+            html += `
+                    </div>
+                    <div class="order-payment">
+                        ⏱ Через ${order.pickup_time} мин · 💳 ${order.payment_method}
+                    </div>
+                    <div class="order-total">
+                        Итого: ${order.total} BYN
+                    </div>
+            `;
+            
+            if (!isArchived) {
+                html += `
+                    <div class="status-buttons">
+                        <button class="status-btn pending ${order.status === 'pending' ? 'active' : ''}" 
+                                onclick="updateStatus(${order.id}, 'pending')">⏳ Ожидается</button>
+                        <button class="status-btn preparing ${order.status === 'preparing' ? 'active' : ''}" 
+                                onclick="updateStatus(${order.id}, 'preparing')">🔥 Готовится</button>
+                        <button class="status-btn ready ${order.status === 'ready' ? 'active' : ''}" 
+                                onclick="updateStatus(${order.id}, 'ready')">✅ Готово</button>
+                    </div>
+                `;
+                
+                html += `
+                    <button class="complete-btn" onclick="completeOrder(${order.id})">
+                        💰 ИСПОЛНЕНО (клиент забрал и оплатил)
+                    </button>
+                `;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function toggleArchive() {
+            const content = document.getElementById('archiveContent');
+            const arrow = document.getElementById('archiveArrow');
+            content.classList.toggle('show');
+            arrow.textContent = content.classList.contains('show') ? '▲' : '▼';
+        }
+        
+        function logout() {
+            sessionStorage.removeItem('adminAuth');
+            window.location.href = 'admin_login.html';
+        }
+        
+        // ============================================
+        // ПОЛЛИНГ
+        // ============================================
+        
+        function startPolling() {
+            setInterval(async () => {
+                await loadOrders();
+            }, 2000);
+        }
+        
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
+        
+        async function init() {
+            await loadMenu();
+            await loadAddons();
+            await loadOrders();
+            startPolling();
+        }
+        
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            init();
+        } else {
+            console.error('Supabase не подключен');
+            setTimeout(() => {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    init();
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
