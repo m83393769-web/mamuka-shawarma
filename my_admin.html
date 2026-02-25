@@ -153,6 +153,21 @@
             white-space: nowrap;
         }
         
+        .status-pending {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-preparing {
+            background: #fff8e1;
+            color: #f57c00;
+        }
+        
+        .status-ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
         .status-completed {
             background: #d4edda;
             color: #155724;
@@ -236,6 +251,12 @@
             font-size: 12px;
             margin-top: 10px;
         }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -284,7 +305,7 @@
                         </tr>
                     </thead>
                     <tbody id="todayOrdersBody">
-                        <tr><td colspan="5" style="text-align: center;">Загрузка...</td></tr>
+                        <tr><td colspan="5" class="loading">Загрузка...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -304,7 +325,7 @@
                         </tr>
                     </thead>
                     <tbody id="historyBody">
-                        <tr><td colspan="4" style="text-align: center;">Загрузка...</td></tr>
+                        <tr><td colspan="4" class="loading">Загрузка...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -317,7 +338,7 @@
                 🧹 СБРОСИТЬ ВСЕ ЗАКАЗЫ
             </button>
             <p class="note">
-                Удалит все заказы: активные, архив, статистику. Настройки сайта останутся.
+                Удалит все заказы из базы данных. Настройки сайта останутся.
             </p>
         </div>
     </div>
@@ -346,6 +367,7 @@
                 
                 if (error) throw error;
                 menuItems = data || [];
+                console.log('Меню загружено:', menuItems.length);
             } catch (e) {
                 console.error('Ошибка загрузки меню:', e);
             }
@@ -360,6 +382,7 @@
                 
                 if (error) throw error;
                 addons = data || [];
+                console.log('Добавки загружены:', addons.length);
             } catch (e) {
                 console.error('Ошибка загрузки добавок:', e);
             }
@@ -367,16 +390,27 @@
 
         async function loadAllOrders() {
             try {
+                console.log('Загружаем заказы...');
+                
                 const { data, error } = await supabaseClient
                     .from('orders')
                     .select('*')
                     .order('created_at', { ascending: false });
                 
                 if (error) throw error;
+                
                 allOrders = data || [];
+                console.log('Загружено заказов:', allOrders.length);
+                
+                if (allOrders.length > 0) {
+                    console.log('Первый заказ:', allOrders[0]);
+                }
+                
                 renderStats();
             } catch (e) {
                 console.error('Ошибка загрузки заказов:', e);
+                document.getElementById('todayOrdersBody').innerHTML = 
+                    '<tr><td colspan="5" style="color: red;">Ошибка загрузки: ' + e.message + '</td></tr>';
             }
         }
 
@@ -385,94 +419,29 @@
         // ============================================
 
         function renderStats() {
-            const today = new Date().toDateString();
-            
-            // Заказы за сегодня
-            const todayOrders = allOrders.filter(o => {
-                const orderDate = new Date(o.created_at).toDateString();
-                return orderDate === today;
-            });
-            
-            const todayCount = todayOrders.length;
-            const todaySum = todayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-            const completedToday = todayOrders.filter(o => o.status === 'completed').length;
-            
-            // Обновляем карточки
-            document.getElementById('todayCount').textContent = todayCount;
-            document.getElementById('todaySum').textContent = todaySum.toFixed(2);
-            document.getElementById('completedCount').textContent = completedToday;
-            
-            // Таблица заказов за сегодня
-            let todayHtml = '';
-            todayOrders.forEach(order => {
-                const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-                
-                // Состав заказа
-                let itemsStr = '';
-                order.items.forEach(item => {
-                    const menuItem = menuItems.find(m => m.id === item.id);
-                    itemsStr += `${menuItem ? menuItem.name : 'Шаурма'} x${item.quantity}, `;
-                });
-                
-                if (order.addons && order.addons.length > 0) {
-                    itemsStr += 'Добавки: ';
-                    order.addons.forEach(addonId => {
-                        const addon = addons.find(a => a.id === addonId);
-                        if (addon) itemsStr += addon.name + ', ';
-                    });
-                }
-                
-                itemsStr = itemsStr.slice(0, -2);
-                
-                const statusClass = order.status === 'completed' ? 'status-completed' : '';
-                const statusText = order.status === 'completed' ? 'Выполнено' : 
-                                 (order.status === 'pending' ? 'Ожидается' : 
-                                 (order.status === 'preparing' ? 'Готовится' : 'Готово'));
-                
-                todayHtml += `
-                    <tr>
-                        <td>#${order.order_number}</td>
-                        <td>${time}</td>
-                        <td>${itemsStr}</td>
-                        <td>${order.total} BYN</td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    </tr>
-                `;
-            });
-            
-            document.getElementById('todayOrdersBody').innerHTML = todayHtml || '<tr><td colspan="5" style="text-align: center;">Нет заказов</td></tr>';
-            
-            // История по дням
-            const history = {};
-            allOrders.forEach(order => {
-                const date = new Date(order.created_at).toLocaleDateString('ru-RU');
-                if (!history[date]) {
-                    history[date] = { count: 0, sum: 0, completed: 0 };
-                }
-                history[date].count++;
-                history[date].sum += order.total;
-                if (order.status === 'completed') {
-                    history[date].completed++;
-                }
-            });
-            
-            let historyHtml = '';
-            Object.keys(history).sort().reverse().forEach(date => {
-                historyHtml += `
-                    <tr>
-                        <td>${date}</td>
-                        <td>${history[date].count}</td>
-                        <td>${history[date].sum.toFixed(2)} BYN</td>
-                        <td>${history[date].completed}</td>
-                    </tr>
-                `;
-            });
-            
-            document.getElementById('historyBody').innerHTML = historyHtml || '<tr><td colspan="4" style="text-align: center;">Нет данных</td></tr>';
-        }
+    console.log('Рендерим статистику, заказов:', allOrders.length);
+    
+    // Просто считаем количество
+    document.getElementById('todayCount').textContent = allOrders.length;
+    document.getElementById('todaySum').textContent = allOrders.reduce((sum, o) => sum + o.total, 0).toFixed(2);
+    document.getElementById('completedCount').textContent = allOrders.filter(o => o.status === 'completed').length;
+    
+    // Выводим все заказы в таблицу
+    let todayHtml = '';
+    allOrders.forEach(order => {
+        todayHtml += `
+            <tr>
+                <td>#${order.order_number}</td>
+                <td>${new Date(order.created_at).toLocaleTimeString()}</td>
+                <td>Заказ ID: ${order.id}</td>
+                <td>${order.total} BYN</td>
+                <td>${order.status}</td>
+            </tr>
+        `;
+    });
+    
+    document.getElementById('todayOrdersBody').innerHTML = todayHtml || '<tr><td colspan="5">Нет заказов</td></tr>';
+}
 
         // ============================================
         // УПРАВЛЕНИЕ САЙТОМ
@@ -514,17 +483,14 @@
             if (!secondConfirm) return;
             
             try {
-                // Удаляем все заказы из таблицы orders
                 const { error } = await supabaseClient
                     .from('orders')
                     .delete()
-                    .neq('id', 0); // удаляем все записи
+                    .neq('id', 0);
                 
                 if (error) throw error;
                 
                 alert('✅ Все заказы удалены из базы данных!');
-                
-                // Перезагружаем статистику
                 await loadAllOrders();
                 
             } catch (e) {
@@ -542,30 +508,48 @@
         // ПОЛЛИНГ
         // ============================================
 
-        function startPolling() {
-            setInterval(async () => {
-                await loadAllOrders();
-            }, 3000);
-        }
+        // Принудительная загрузка каждые 2 секунды
+setInterval(async () => {
+    console.log('Проверяем заказы...');
+    try {
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        console.log('Получено заказов:', data?.length);
+        allOrders = data || [];
+        renderStats();
+    } catch (e) {
+        console.error('Ошибка:', e);
+    }
+}, 2000);
 
         // ============================================
         // ИНИЦИАЛИЗАЦИЯ
         // ============================================
 
         async function init() {
+            console.log('Инициализация моей админки...');
             await loadMenu();
             await loadAddons();
             await loadAllOrders();
             startPolling();
         }
 
+        // Ждём загрузки Supabase
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
             init();
         } else {
-            console.error('Supabase не подключен');
+            console.log('Ждём подключения к Supabase...');
             setTimeout(() => {
                 if (typeof supabaseClient !== 'undefined' && supabaseClient) {
                     init();
+                } else {
+                    console.error('Supabase так и не подключился');
+                    document.body.innerHTML += '<div style="color:red; padding:20px;">Ошибка подключения к Supabase</div>';
                 }
             }, 1000);
         }
