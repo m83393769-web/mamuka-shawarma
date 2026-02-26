@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <style>
-        /* Стили как были - оставляем без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -100,6 +99,32 @@
             margin-top: 5px;
         }
         
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .mode-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        .mode-btn.today {
+            background: #1e3c8b;
+            color: white;
+        }
+        
+        .mode-btn.all {
+            background: #6c757d;
+            color: white;
+        }
+        
         .section {
             background: white;
             border-radius: 15px;
@@ -173,85 +198,6 @@
             color: #155724;
         }
         
-        .control-panel {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        
-        .control-panel h3 {
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-        
-        .toggle-btn {
-            padding: 15px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-            width: 100%;
-        }
-        
-        @media (min-width: 600px) {
-            .toggle-btn {
-                width: auto;
-                padding: 15px 30px;
-                font-size: 18px;
-            }
-        }
-        
-        .toggle-btn.on {
-            background: #28a745;
-            color: white;
-        }
-        
-        .toggle-btn.off {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .danger-zone {
-            margin-top: 30px;
-            border: 2px solid #dc3545;
-            border-radius: 15px;
-            padding: 20px;
-            background: #fff5f5;
-        }
-        
-        .danger-zone h3 {
-            color: #dc3545;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-        
-        .danger-btn {
-            width: 100%;
-            padding: 15px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 16px;
-            transition: 0.3s;
-        }
-        
-        .danger-btn:hover {
-            background: #b02a37;
-        }
-        
-        .note {
-            color: #999;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-        
         .loading {
             text-align: center;
             padding: 30px;
@@ -266,6 +212,7 @@
             <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
 
+        <!-- Статистика за сегодня -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="label">Заказов сегодня</div>
@@ -282,10 +229,17 @@
             </div>
         </div>
 
+        <!-- Переключатель режима -->
+        <div class="mode-selector">
+            <button id="showTodayBtn" class="mode-btn today" onclick="setHistoryMode('today')">📅 Только сегодня</button>
+            <button id="showAllBtn" class="mode-btn all" onclick="setHistoryMode('all')">📚 Вся история</button>
+        </div>
+
+        <!-- Заказы -->
         <div class="section">
-            <h2>📋 Заказы за сегодня</h2>
+            <h2 id="ordersTitle">📋 Заказы за сегодня</h2>
             <div class="table-wrapper">
-                <table id="todayOrdersTable">
+                <table id="ordersTable">
                     <thead>
                         <tr>
                             <th>№ заказа</th>
@@ -295,15 +249,16 @@
                             <th>Статус</th>
                         </tr>
                     </thead>
-                    <tbody id="todayOrdersBody">
+                    <tbody id="ordersBody">
                         <tr><td colspan="5" class="loading">Загрузка...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
+        <!-- История по дням -->
         <div class="section">
-            <h2>📅 История по дням</h2>
+            <h2>📅 Статистика по дням</h2>
             <div class="table-wrapper">
                 <table id="historyTable">
                     <thead>
@@ -320,16 +275,6 @@
                 </table>
             </div>
         </div>
-
-        <div class="danger-zone">
-            <h3>⚠️ ОПАСНАЯ ЗОНА</h3>
-            <button class="danger-btn" onclick="confirmResetArchive()">
-                🧹 СБРОСИТЬ ВСЕ ЗАКАЗЫ
-            </button>
-            <p class="note">
-                Удалит все заказы из базы данных. Настройки сайта останутся.
-            </p>
-        </div>
     </div>
 
     <script>
@@ -341,27 +286,62 @@
         let menuItems = [];
         let addons = [];
         let allOrders = [];
+        let historyMode = 'today'; // 'today' или 'all'
 
         // ============================================
         // ЗАГРУЗКА ДАННЫХ
         // ============================================
 
         async function loadMenu() {
-            const { data, error } = await supabaseClient.from('menu').select('*').eq('is_available', true);
+            const { data, error } = await supabaseClient
+                .from('menu')
+                .select('*')
+                .eq('is_available', true);
             if (!error) menuItems = data || [];
         }
 
         async function loadAddons() {
-            const { data, error } = await supabaseClient.from('addons').select('*').eq('is_available', true);
+            const { data, error } = await supabaseClient
+                .from('addons')
+                .select('*')
+                .eq('is_available', true);
             if (!error) addons = data || [];
         }
 
         async function loadAllOrders() {
-            const { data, error } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabaseClient
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
             if (!error) {
                 allOrders = data || [];
                 renderStats();
             }
+        }
+
+        // ============================================
+        // УПРАВЛЕНИЕ РЕЖИМОМ
+        // ============================================
+
+        function setHistoryMode(mode) {
+            historyMode = mode;
+            
+            const todayBtn = document.getElementById('showTodayBtn');
+            const allBtn = document.getElementById('showAllBtn');
+            const title = document.getElementById('ordersTitle');
+            
+            if (mode === 'today') {
+                todayBtn.className = 'mode-btn today';
+                allBtn.className = 'mode-btn all';
+                title.textContent = '📋 Заказы за сегодня';
+            } else {
+                todayBtn.className = 'mode-btn all';
+                allBtn.className = 'mode-btn today';
+                title.textContent = '📚 Вся история заказов';
+            }
+            
+            renderStats();
         }
 
         // ============================================
@@ -370,70 +350,134 @@
 
         function renderStats() {
             const today = new Date().toDateString();
-            const todayOrders = allOrders.filter(o => new Date(o.created_at).toDateString() === today);
             
-            document.getElementById('todayCount').textContent = todayOrders.length;
-            document.getElementById('todaySum').textContent = todayOrders.reduce((s, o) => s + o.total, 0).toFixed(2);
-            document.getElementById('completedCount').textContent = todayOrders.filter(o => o.status === 'completed').length;
-
-            let todayHtml = '';
-            todayOrders.forEach(order => {
-                const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                let itemsStr = order.items.map(i => {
-                    const m = menuItems.find(m => m.id === i.id);
-                    return m ? `${m.name} x${i.quantity}` : '';
-                }).filter(Boolean).join(', ');
-                
-                if (order.addons?.length) {
-                    itemsStr += ' + ' + order.addons.map(a => {
-                        const ad = addons.find(ad => ad.id === a);
-                        return ad?.name;
-                    }).filter(Boolean).join(', ');
-                }
-
-                let statusClass = order.status === 'pending' ? 'status-pending' : 
-                                 order.status === 'preparing' ? 'status-preparing' :
-                                 order.status === 'ready' ? 'status-ready' : 'status-completed';
-                let statusText = order.status === 'pending' ? 'Ожидается' :
-                                order.status === 'preparing' ? 'Готовится' :
-                                order.status === 'ready' ? 'Готово' : 'Выполнено';
-
-                todayHtml += `<tr><td>#${order.order_number}</td><td>${time}</td><td>${itemsStr}</td><td>${order.total} BYN</td><td><span class="status-badge ${statusClass}">${statusText}</span></td></tr>`;
+            // Заказы для отображения (с учётом режима)
+            let ordersToShow = allOrders;
+            if (historyMode === 'today') {
+                ordersToShow = allOrders.filter(o => {
+                    const orderDate = new Date(o.created_at).toDateString();
+                    return orderDate === today;
+                });
+            }
+            
+            // Считаем статистику за сегодня (для карточек)
+            const todayOrders = allOrders.filter(o => {
+                const orderDate = new Date(o.created_at).toDateString();
+                return orderDate === today;
             });
-            document.getElementById('todayOrdersBody').innerHTML = todayHtml || '<tr><td colspan="5">Нет заказов сегодня</td></tr>';
-
+            
+            const todayCount = todayOrders.length;
+            const todaySum = todayOrders.reduce((sum, o) => sum + o.total, 0);
+            const completedToday = todayOrders.filter(o => o.status === 'completed').length;
+            
+            document.getElementById('todayCount').textContent = todayCount;
+            document.getElementById('todaySum').textContent = todaySum.toFixed(2);
+            document.getElementById('completedCount').textContent = completedToday;
+            
+            // Таблица заказов
+            let ordersHtml = '';
+            
+            if (ordersToShow.length === 0) {
+                ordersHtml = '<tr><td colspan="5" style="text-align: center;">Нет заказов</td></tr>';
+            } else {
+                ordersToShow.forEach(order => {
+                    const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    // Состав заказа
+                    let itemsStr = '';
+                    if (order.items && Array.isArray(order.items)) {
+                        order.items.forEach(item => {
+                            const menuItem = menuItems.find(m => m.id === item.id);
+                            itemsStr += `${menuItem ? menuItem.name : 'Шаурма'} x${item.quantity}`;
+                            
+                            if (item.addons && item.addons.length > 0) {
+                                const addonNames = item.addons.map(addonId => {
+                                    const a = addons.find(a => a.id === addonId);
+                                    return a ? a.name : '';
+                                }).filter(Boolean).join(', ');
+                                itemsStr += ` (+${addonNames})`;
+                            }
+                            
+                            itemsStr += ', ';
+                        });
+                    }
+                    
+                    itemsStr = itemsStr.slice(0, -2);
+                    
+                    let statusClass = '';
+                    let statusText = order.status === 'pending' ? 'Ожидается' : 
+                                    order.status === 'preparing' ? 'Готовится' : 
+                                    order.status === 'ready' ? 'Готово' : 'Выполнено';
+                    
+                    if (order.status === 'pending') statusClass = 'status-pending';
+                    else if (order.status === 'preparing') statusClass = 'status-preparing';
+                    else if (order.status === 'ready') statusClass = 'status-ready';
+                    else if (order.status === 'completed') statusClass = 'status-completed';
+                    
+                    ordersHtml += `
+                        <tr>
+                            <td>#${order.order_number}</td>
+                            <td>${time}</td>
+                            <td>${itemsStr || '—'}</td>
+                            <td>${order.total} BYN</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            document.getElementById('ordersBody').innerHTML = ordersHtml;
+            
+            // История по дням
             const history = {};
-            allOrders.forEach(o => {
-                const d = new Date(o.created_at).toLocaleDateString('ru-RU');
-                if (!history[d]) history[d] = { count: 0, sum: 0, completed: 0 };
-                history[d].count++;
-                history[d].sum += o.total;
-                if (o.status === 'completed') history[d].completed++;
+            allOrders.forEach(order => {
+                const date = new Date(order.created_at).toLocaleDateString('ru-RU');
+                if (!history[date]) {
+                    history[date] = { count: 0, sum: 0, completed: 0 };
+                }
+                history[date].count++;
+                history[date].sum += order.total;
+                if (order.status === 'completed') {
+                    history[date].completed++;
+                }
             });
-
+            
             let historyHtml = '';
-            Object.keys(history).sort().reverse().forEach(d => {
-                historyHtml += `<tr><td>${d}</td><td>${history[d].count}</td><td>${history[d].sum.toFixed(2)} BYN</td><td>${history[d].completed}</td></tr>`;
-            });
-            document.getElementById('historyBody').innerHTML = historyHtml || '<tr><td colspan="4">Нет данных</td></tr>';
+            const dates = Object.keys(history).sort().reverse();
+            
+            if (dates.length === 0) {
+                historyHtml = '<tr><td colspan="4" style="text-align: center;">Нет данных</td></tr>';
+            } else {
+                dates.forEach(date => {
+                    historyHtml += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${history[date].count}</td>
+                            <td>${history[date].sum.toFixed(2)} BYN</td>
+                            <td>${history[date].completed}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            document.getElementById('historyBody').innerHTML = historyHtml;
         }
-
-        // ============================================
-        // СБРОС
-        // ============================================
-
-        window.confirmResetArchive = async function() {
-            if (!confirm('Точно сбросить все заказы?')) return;
-            if (!confirm('Последнее предупреждение! Все заказы исчезнут.')) return;
-            await supabaseClient.from('orders').delete().neq('id', 0);
-            alert('Заказы удалены');
-            location.reload();
-        };
 
         function logout() {
             sessionStorage.removeItem('myAdminAuth');
             window.location.href = 'my_admin_login.html';
         }
+
+        // ============================================
+        // ПОЛЛИНГ
+        // ============================================
+
+        setInterval(async () => {
+            await loadAllOrders();
+        }, 3000);
 
         // ============================================
         // ИНИЦИАЛИЗАЦИЯ
@@ -443,12 +487,11 @@
             await loadMenu();
             await loadAddons();
             await loadAllOrders();
-            setInterval(async () => {
-                await loadAllOrders();
-            }, 3000);
         }
 
-        if (typeof supabaseClient !== 'undefined') init();
+        if (typeof supabaseClient !== 'undefined') {
+            init();
+        }
     </script>
 </body>
 </html>
