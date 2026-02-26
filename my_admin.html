@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Моя админка - Статистика Мамуки</title>
-    <!-- Подключаем Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <style>
+        /* Стили как были - оставляем без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -266,14 +266,12 @@
             <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
 
-        <!-- Блок управления сайтом -->
         <div class="control-panel">
             <h3>⚡ Управление сайтом</h3>
-            <button id="siteToggleBtn" class="toggle-btn" onclick="toggleSite()">Загрузка...</button>
+            <button id="siteToggleBtn" class="toggle-btn" onclick="window.toggleSite()">Загрузка...</button>
             <p style="margin-top: 15px; color: #666;" id="siteStatusText"></p>
         </div>
 
-        <!-- Статистика за сегодня (3 карточки) -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="label">Заказов сегодня</div>
@@ -290,7 +288,6 @@
             </div>
         </div>
 
-        <!-- Заказы за сегодня -->
         <div class="section">
             <h2>📋 Заказы за сегодня</h2>
             <div class="table-wrapper">
@@ -311,7 +308,6 @@
             </div>
         </div>
 
-        <!-- История по дням -->
         <div class="section">
             <h2>📅 История по дням</h2>
             <div class="table-wrapper">
@@ -331,7 +327,6 @@
             </div>
         </div>
 
-        <!-- ОПАСНАЯ ЗОНА - СБРОС -->
         <div class="danger-zone">
             <h3>⚠️ ОПАСНАЯ ЗОНА</h3>
             <button class="danger-btn" onclick="confirmResetArchive()">
@@ -349,68 +344,29 @@
             window.location.href = 'my_admin_login.html';
         }
 
-        // Меню и добавки для отображения
         let menuItems = [];
         let addons = [];
         let allOrders = [];
 
         // ============================================
-        // ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE
+        // ЗАГРУЗКА ДАННЫХ
         // ============================================
 
         async function loadMenu() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('menu')
-                    .select('*')
-                    .eq('is_available', true);
-                
-                if (error) throw error;
-                menuItems = data || [];
-                console.log('Меню загружено:', menuItems.length);
-            } catch (e) {
-                console.error('Ошибка загрузки меню:', e);
-            }
+            const { data, error } = await supabaseClient.from('menu').select('*').eq('is_available', true);
+            if (!error) menuItems = data || [];
         }
 
         async function loadAddons() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('addons')
-                    .select('*')
-                    .eq('is_available', true);
-                
-                if (error) throw error;
-                addons = data || [];
-                console.log('Добавки загружены:', addons.length);
-            } catch (e) {
-                console.error('Ошибка загрузки добавок:', e);
-            }
+            const { data, error } = await supabaseClient.from('addons').select('*').eq('is_available', true);
+            if (!error) addons = data || [];
         }
 
         async function loadAllOrders() {
-            try {
-                console.log('Загружаем заказы...');
-                
-                const { data, error } = await supabaseClient
-                    .from('orders')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
+            const { data, error } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+            if (!error) {
                 allOrders = data || [];
-                console.log('Загружено заказов:', allOrders.length);
-                
-                if (allOrders.length > 0) {
-                    console.log('Первый заказ:', allOrders[0]);
-                }
-                
                 renderStats();
-            } catch (e) {
-                console.error('Ошибка загрузки заказов:', e);
-                document.getElementById('todayOrdersBody').innerHTML = 
-                    '<tr><td colspan="5" style="color: red;">Ошибка загрузки: ' + e.message + '</td></tr>';
             }
         }
 
@@ -419,40 +375,64 @@
         // ============================================
 
         function renderStats() {
-    console.log('Рендерим статистику, заказов:', allOrders.length);
-    
-    // Просто считаем количество
-    document.getElementById('todayCount').textContent = allOrders.length;
-    document.getElementById('todaySum').textContent = allOrders.reduce((sum, o) => sum + o.total, 0).toFixed(2);
-    document.getElementById('completedCount').textContent = allOrders.filter(o => o.status === 'completed').length;
-    
-    // Выводим все заказы в таблицу
-    let todayHtml = '';
-    allOrders.forEach(order => {
-        todayHtml += `
-            <tr>
-                <td>#${order.order_number}</td>
-                <td>${new Date(order.created_at).toLocaleTimeString()}</td>
-                <td>Заказ ID: ${order.id}</td>
-                <td>${order.total} BYN</td>
-                <td>${order.status}</td>
-            </tr>
-        `;
-    });
-    
-    document.getElementById('todayOrdersBody').innerHTML = todayHtml || '<tr><td colspan="5">Нет заказов</td></tr>';
-}
+            const today = new Date().toDateString();
+            const todayOrders = allOrders.filter(o => new Date(o.created_at).toDateString() === today);
+            
+            document.getElementById('todayCount').textContent = todayOrders.length;
+            document.getElementById('todaySum').textContent = todayOrders.reduce((s, o) => s + o.total, 0).toFixed(2);
+            document.getElementById('completedCount').textContent = todayOrders.filter(o => o.status === 'completed').length;
+
+            let todayHtml = '';
+            todayOrders.forEach(order => {
+                const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                let itemsStr = order.items.map(i => {
+                    const m = menuItems.find(m => m.id === i.id);
+                    return m ? `${m.name} x${i.quantity}` : '';
+                }).filter(Boolean).join(', ');
+                
+                if (order.addons?.length) {
+                    itemsStr += ' + ' + order.addons.map(a => {
+                        const ad = addons.find(ad => ad.id === a);
+                        return ad?.name;
+                    }).filter(Boolean).join(', ');
+                }
+
+                let statusClass = order.status === 'pending' ? 'status-pending' : 
+                                 order.status === 'preparing' ? 'status-preparing' :
+                                 order.status === 'ready' ? 'status-ready' : 'status-completed';
+                let statusText = order.status === 'pending' ? 'Ожидается' :
+                                order.status === 'preparing' ? 'Готовится' :
+                                order.status === 'ready' ? 'Готово' : 'Выполнено';
+
+                todayHtml += `<tr><td>#${order.order_number}</td><td>${time}</td><td>${itemsStr}</td><td>${order.total} BYN</td><td><span class="status-badge ${statusClass}">${statusText}</span></td></tr>`;
+            });
+            document.getElementById('todayOrdersBody').innerHTML = todayHtml || '<tr><td colspan="5">Нет заказов сегодня</td></tr>';
+
+            const history = {};
+            allOrders.forEach(o => {
+                const d = new Date(o.created_at).toLocaleDateString('ru-RU');
+                if (!history[d]) history[d] = { count: 0, sum: 0, completed: 0 };
+                history[d].count++;
+                history[d].sum += o.total;
+                if (o.status === 'completed') history[d].completed++;
+            });
+
+            let historyHtml = '';
+            Object.keys(history).sort().reverse().forEach(d => {
+                historyHtml += `<tr><td>${d}</td><td>${history[d].count}</td><td>${history[d].sum.toFixed(2)} BYN</td><td>${history[d].completed}</td></tr>`;
+            });
+            document.getElementById('historyBody').innerHTML = historyHtml || '<tr><td colspan="4">Нет данных</td></tr>';
+        }
 
         // ============================================
-        // УПРАВЛЕНИЕ САЙТОМ
+        // УПРАВЛЕНИЕ САЙТОМ (ЧЕРЕЗ БАЗУ)
         // ============================================
 
-        function updateSiteToggleButton() {
-            const isOff = localStorage.getItem('siteOff') === 'true';
+        window.updateSiteToggleButton = async function() {
+            const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
             const btn = document.getElementById('siteToggleBtn');
             const statusText = document.getElementById('siteStatusText');
-            
-            if (isOff) {
+            if (data?.site_off) {
                 btn.textContent = '🔴 САЙТ ОТКЛЮЧЕН';
                 btn.className = 'toggle-btn off';
                 statusText.textContent = 'Сейчас сайт не работает. Клиенты видят заглушку.';
@@ -461,43 +441,27 @@
                 btn.className = 'toggle-btn on';
                 statusText.textContent = 'Сайт доступен для заказов.';
             }
-        }
+        };
 
-        function toggleSite() {
-            const current = localStorage.getItem('siteOff') === 'true';
-            localStorage.setItem('siteOff', (!current).toString());
-            updateSiteToggleButton();
-        }
+        window.toggleSite = async function() {
+            console.log('Кнопка нажата!');
+            const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
+            const newStatus = !data.site_off;
+            await supabaseClient.from('settings').update({ site_off: newStatus }).eq('id', 1);
+            window.updateSiteToggleButton();
+        };
 
         // ============================================
-        // СБРОС ЗАКАЗОВ (ДЛЯ ТЕСТОВ)
+        // СБРОС
         // ============================================
 
-        async function confirmResetArchive() {
-            const firstConfirm = confirm('🔥 ТОЧНО СБРОСИТЬ?\n\nУдалятся ВСЕ заказы из БД!\n\nНастройки сайта останутся.');
-            
-            if (!firstConfirm) return;
-            
-            const secondConfirm = confirm('⚠️ ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ!\n\nЭто действие нельзя отменить. Все заказы исчезнут навсегда из базы данных.\n\nТочно продолжаем?');
-            
-            if (!secondConfirm) return;
-            
-            try {
-                const { error } = await supabaseClient
-                    .from('orders')
-                    .delete()
-                    .neq('id', 0);
-                
-                if (error) throw error;
-                
-                alert('✅ Все заказы удалены из базы данных!');
-                await loadAllOrders();
-                
-            } catch (e) {
-                console.error('Ошибка при сбросе:', e);
-                alert('❌ Ошибка при удалении заказов: ' + e.message);
-            }
-        }
+        window.confirmResetArchive = async function() {
+            if (!confirm('Точно сбросить все заказы?')) return;
+            if (!confirm('Последнее предупреждение! Все заказы исчезнут.')) return;
+            await supabaseClient.from('orders').delete().neq('id', 0);
+            alert('Заказы удалены');
+            location.reload();
+        };
 
         function logout() {
             sessionStorage.removeItem('myAdminAuth');
@@ -505,57 +469,20 @@
         }
 
         // ============================================
-        // ПОЛЛИНГ
-        // ============================================
-
-        // Принудительная загрузка каждые 2 секунды
-setInterval(async () => {
-    console.log('Проверяем заказы...');
-    try {
-        const { data, error } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        console.log('Получено заказов:', data?.length);
-        allOrders = data || [];
-        renderStats();
-    } catch (e) {
-        console.error('Ошибка:', e);
-    }
-}, 2000);
-
-        // ============================================
         // ИНИЦИАЛИЗАЦИЯ
         // ============================================
 
         async function init() {
-            console.log('Инициализация моей админки...');
             await loadMenu();
             await loadAddons();
             await loadAllOrders();
-            startPolling();
+            await window.updateSiteToggleButton();
+            setInterval(async () => {
+                await loadAllOrders();
+            }, 3000);
         }
 
-        // Ждём загрузки Supabase
-        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-            init();
-        } else {
-            console.log('Ждём подключения к Supabase...');
-            setTimeout(() => {
-                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    init();
-                } else {
-                    console.error('Supabase так и не подключился');
-                    document.body.innerHTML += '<div style="color:red; padding:20px;">Ошибка подключения к Supabase</div>';
-                }
-            }, 1000);
-        }
-
-        // Загружаем состояние кнопки сайта
-        updateSiteToggleButton();
+        if (typeof supabaseClient !== 'undefined') init();
     </script>
 </body>
 </html>

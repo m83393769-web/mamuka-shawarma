@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Сайт не работает</title>
+    <style>
+        body { background: #8b1e1e; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; font-family: sans-serif; }
+        h1 { font-size: 32px; margin-bottom: 20px; }
+        p { font-size: 18px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+</head>
+<body>
+    <div>
+        <h1>🥙 Шаурма от Мамуки</h1>
+        <p>Сайт временно закрыт. Загляните позже!</p>
+    </div>
+    <script>
+        async function checkSiteStatus() {
+            const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
+            if (!data?.site_off) window.location.href = 'index.html';
+        }
+        setInterval(checkSiteStatus, 2000);
+    </script>
+</body>
+</html>
