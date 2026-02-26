@@ -341,10 +341,30 @@
     </div>
 
     <script>
-        // Проверка, включен ли сайт
-        if (localStorage.getItem('siteOff') === 'true') {
-            window.location.href = 'off.html';
+        // Проверка статуса сайта через базу данных
+        async function checkSiteStatus() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('settings')
+                    .select('site_off')
+                    .eq('id', 1)
+                    .single();
+                
+                if (error) throw error;
+                
+                if (data.site_off) {
+                    window.location.href = 'off.html';
+                }
+            } catch (e) {
+                console.error('Ошибка проверки статуса:', e);
+            }
         }
+        
+        // Проверяем при загрузке
+        checkSiteStatus();
+        
+        // И каждые 2 секунды
+        setInterval(checkSiteStatus, 2000);
     </script>
 
     <div class="container">
@@ -786,22 +806,6 @@
                 }
             }, 1000);
         }
-    </script>
-    <!-- Мониторинг отключения сайта -->
-    <script>
-        function checkSiteStatus() {
-            if (localStorage.getItem('siteOff') === 'true') {
-                window.location.href = 'off.html';
-            }
-        }
-        
-        setInterval(checkSiteStatus, 1000);
-        
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'siteOff' && e.newValue === 'true') {
-                window.location.href = 'off.html';
-            }
-        });
     </script>
 </body>
 </html>
