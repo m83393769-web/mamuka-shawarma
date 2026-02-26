@@ -432,6 +432,11 @@
         let orders = [];
         
         const timeOptions = [15, 20, 25, 30, 35, 40, 45];
+
+        // Рабочее время
+        const WORK_START = 9; // 09:00
+        const WORK_END = 20;   // 20:00
+        const WORK_DAYS = [1, 2, 3, 4, 5, 6]; // 1 = понедельник, 6 = суббота
         
         // ============================================
         // ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE
@@ -518,6 +523,13 @@
     }
         
         async function placeOrder() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            if (currentHour < WORK_START || currentHour >= WORK_END) {
+                alert('⏰ Заказы принимаются только с 09:00 до 20:00');
+                return;
+            }
+
             if (cart.length === 0) return;
             
             const time = document.getElementById('orderTime').value;
@@ -591,6 +603,21 @@
                 `;
             });
             
+            // Проверка рабочего времени
+            const now = new Date();
+            const currentHour = now.getHours();
+            const isWorkingTime = currentHour >= WORK_START && currentHour < WORK_END;
+
+            if (!isWorkingTime && cart.length > 0) {
+                html += '<div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center; border: 1px solid #c62828;">';
+                html += '⏰ Сейчас нерабочее время (20:00 – 09:00). Заказы принимаются только с 09:00 до 20:00.';
+                html += '</div>';
+                
+                // Очищаем корзину, чтобы нельзя было заказать
+                cart = [];
+                selectedAddons = [];
+            }
+
             if (cart.length > 0) {
                 html += '<div class="cart-section">';
                 html += '<h3>Корзина</h3>';
