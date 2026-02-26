@@ -492,27 +492,30 @@
             return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
         
-        async function getNextOrderNumber() {
-            const today = getTodayDate();
-            
-            const { data, error } = await supabaseClient
-                .from('orders')
-                .select('order_number')
-                .gte('created_at', today + ' 00:00:00')
-                .lt('created_at', today + ' 23:59:59')
-                .neq('status', 'completed');
-            
-            if (error) {
-                console.error('Ошибка получения номера:', error);
-                return 1;
-            }
-            
-            if (data && data.length > 0) {
-                const numbers = data.map(o => o.order_number);
-                return Math.max(...numbers) + 1;
-            }
+    async function getNextOrderNumber() {
+        const today = getTodayDate();
+
+        // Получаем ВСЕ заказы за сегодня (включая выполненные)
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .select('order_number')
+            .gte('created_at', today + ' 00:00:00')
+            .lt('created_at', today + ' 23:59:59');
+
+        if (error) {
+            console.error('Ошибка получения номера:', error);
             return 1;
         }
+
+        // Если есть заказы за сегодня — берём максимальный номер + 1
+        if (data && data.length > 0) {
+            const numbers = data.map(o => o.order_number);
+            return Math.max(...numbers) + 1;
+        }
+
+        // Если заказов сегодня нет — начинаем с 1
+        return 1;
+    }
         
         async function placeOrder() {
             if (cart.length === 0) return;
