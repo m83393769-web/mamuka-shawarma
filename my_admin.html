@@ -266,12 +266,6 @@
             <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
 
-        <div class="control-panel">
-            <h3>⚡ Управление сайтом</h3>
-            <button id="siteToggleBtn" class="toggle-btn" onclick="toggleSite()">Загрузка...</button>
-            <p style="margin-top: 15px; color: #666;" id="siteStatusText"></p>
-        </div>
-
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="label">Заказов сегодня</div>
@@ -425,34 +419,6 @@
         }
 
         // ============================================
-        // УПРАВЛЕНИЕ САЙТОМ (ЧЕРЕЗ БАЗУ)
-        // ============================================
-
-        window.updateSiteToggleButton = async function() {
-            const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
-            const btn = document.getElementById('siteToggleBtn');
-            const statusText = document.getElementById('siteStatusText');
-            
-            if (data?.site_off) {
-                btn.textContent = '🔴 САЙТ ОТКЛЮЧЕН';
-                btn.className = 'toggle-btn off';
-                statusText.textContent = 'Сейчас сайт не работает. Клиенты видят заглушку.';
-            } else {
-                btn.textContent = '🟢 САЙТ РАБОТАЕТ';
-                btn.className = 'toggle-btn on';
-                statusText.textContent = 'Сайт доступен для заказов.';
-            }
-        };
-
-        window.toggleSite = async function() {
-            console.log('Кнопка нажата!');
-            const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
-            const newStatus = !data.site_off;
-            await supabaseClient.from('settings').update({ site_off: newStatus }).eq('id', 1);
-            await window.updateSiteToggleButton();  // <<<--- ДОБАВЬ AWAIT
-        };
-
-        // ============================================
         // СБРОС
         // ============================================
 
@@ -477,7 +443,6 @@
             await loadMenu();
             await loadAddons();
             await loadAllOrders();
-            await window.updateSiteToggleButton();
             setInterval(async () => {
                 await loadAllOrders();
             }, 3000);
