@@ -244,9 +244,14 @@
         <div id="activeOrders"></div>
         
         <div class="archive-section">
-            <div class="archive-header" onclick="toggleArchive()">
-                <span>📦 Архив выполненных заказов</span>
-                <span id="archiveArrow">▼</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div class="archive-header" onclick="toggleArchive()" style="flex: 1; margin-right: 10px;">
+                    <span>📦 Архив выполненных заказов</span>
+                    <span id="archiveArrow">▼</span>
+                </div>
+                <button onclick="toggleHideYesterday()" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                    🧹 Скрыть вчерашние
+                </button>
             </div>
             <div class="archive-content" id="archiveContent">
                 <div id="archiveOrders"></div>
@@ -357,6 +362,16 @@
         function renderOrders() {
             const activeOrders = orders.filter(o => o.status !== 'completed');
             const archivedOrders = orders.filter(o => o.status === 'completed');
+
+            // Фильтруем архив, если включен режим скрытия вчерашних
+            let filteredArchived = archivedOrders;
+            if (hideYesterday) {
+                const today = new Date().toDateString();
+                filteredArchived = archivedOrders.filter(order => {
+                    const orderDate = new Date(order.created_at).toDateString();
+                    return orderDate === today;
+                });
+            }
             
             const activeContainer = document.getElementById('activeOrders');
             
@@ -373,11 +388,11 @@
             
             const archiveContainer = document.getElementById('archiveOrders');
             
-            if (archivedOrders.length === 0) {
+            if (filteredArchived.length === 0) {
                 archiveContainer.innerHTML = '<div class="empty-state">📭 Архив пуст</div>';
             } else {
                 let html = '<div class="orders-grid">';
-                archivedOrders.forEach(order => {
+                filteredArchived.forEach(order => {
                     html += renderOrderCard(order, true);
                 });
                 html += '</div>';
@@ -413,14 +428,20 @@
             `;
             
             order.items.forEach(item => {
-                const menuItem = menuItems.find(m => m.id === item.id);
-                html += `
-                    <div class="order-item">
-                        <span>${menuItem ? menuItem.name : 'Шаурма'} x${item.quantity}</span>
-                        <span>${menuItem ? menuItem.price * item.quantity : 0} BYN</span>
-                    </div>
-                `;
-            });
+            const menuItem = menuItems.find(m => m.id === item.id);
+            let itemHtml = `<div class="order-item"><span>${menuItem.name} x${item.quantity}</span><span>${menuItem.price * item.quantity} BYN</span></div>`;
+            
+            if (item.addons && item.addons.length > 0) {
+                const addonNames = item.addons.map(addonId => {
+                    const a = addons.find(a => a.id === addonId);
+                    return a ? a.name : '';
+                }).filter(Boolean).join(', ');
+                
+                itemHtml += `<div class="order-addons">➕ ${addonNames}</div>`;
+            }
+    
+    html += itemHtml;
+});
             
             if (order.addons && order.addons.length > 0) {
                 html += '<div class="order-addons">➕ Добавки: ';
@@ -509,5 +530,20 @@
             }, 1000);
         }
     </script>
+
+        <script>
+            // Переменная для хранения состояния фильтра
+            let hideYesterday = false;
+            
+            // Функция переключения фильтра
+            window.toggleHideYesterday = function() {
+                hideYesterday = !hideYesterday;
+                renderOrders(); // перерисовываем заказы
+                
+                // Показываем предупреждение
+                alert('📌 Все заказы хранятся в БД. Это визуальная очистка, чтобы не мозолили глаза вчерашние заказы.');
+            };
+        </script>
+
 </body>
 </html>

@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Шаурма от Мамуки</title>
-    <!-- Подключаем Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <style>
-        /* СТИЛИ БЕЗ ИЗМЕНЕНИЙ - оставляем как было */
         * {
             margin: 0;
             padding: 0;
@@ -62,6 +60,16 @@
             opacity: 0.9;
         }
         
+        .footer {
+            background: #8b1e1e;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 14px;
+            border-top: 2px solid #fff3cd;
+            margin-top: 20px;
+        }
+        
         .tabs {
             display: flex;
             background: white;
@@ -87,14 +95,17 @@
         }
         
         .menu-item {
-            display: flex;
-            align-items: center;
             background: white;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             border: 1px solid #eee;
+        }
+        
+        .menu-item-row {
+            display: flex;
+            align-items: center;
         }
         
         .menu-item-img {
@@ -151,6 +162,36 @@
             text-align: center;
         }
         
+        .item-addons {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+        }
+        
+        .addons-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .addons-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .addon-item {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
         .cart-section {
             margin-top: 20px;
             padding: 15px;
@@ -162,13 +203,27 @@
         .cart-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             padding: 10px 0;
             border-bottom: 1px solid #eee;
         }
         
-        .cart-item:last-child {
-            border-bottom: none;
+        .cart-item-info {
+            flex: 1;
+        }
+        
+        .cart-item-name {
+            font-weight: bold;
+        }
+        
+        .cart-item-addons {
+            font-size: 12px;
+            color: #f57c00;
+            margin-top: 3px;
+        }
+        
+        .cart-item-price {
+            font-weight: bold;
         }
         
         .cart-total {
@@ -192,32 +247,12 @@
             font-weight: bold;
         }
         
-        .form-group select, .form-group textarea, .form-group input[type="text"] {
+        .form-group select {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 16px;
-        }
-        
-        .form-group textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-        
-        .form-group.checkbox {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .form-group.checkbox input {
-            width: 20px;
-            height: 20px;
-        }
-        
-        .form-group.checkbox label {
-            margin-bottom: 0;
         }
         
         .order-btn {
@@ -291,10 +326,14 @@
             color: #666;
         }
         
-        .order-addons {
-            font-size: 14px;
+        .order-item-row {
+            margin-bottom: 5px;
+        }
+        
+        .order-item-addons {
+            font-size: 12px;
             color: #f57c00;
-            margin: 5px 0;
+            margin-left: 15px;
         }
         
         .order-footer {
@@ -315,58 +354,18 @@
             display: none !important;
         }
         
-        .addons-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin: 10px 0;
-        }
-        
-        .addon-item {
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .working-hours-warning {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #c62828;
         }
     </style>
 </head>
 <body>
-    <!-- Блокировка сайта -->
-    <div id="siteOffMessage" style="display: none; background: #dc3545; color: white; text-align: center; padding: 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;">
-        <h2>😢 Сайт временно не работает</h2>
-        <p>Шаурмичная Мамуки скоро откроется. Загляните позже!</p>
-    </div>
-
-    <script>
-        // Проверка статуса сайта через базу данных
-        async function checkSiteStatus() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('settings')
-                    .select('site_off')
-                    .eq('id', 1)
-                    .single();
-                
-                if (error) throw error;
-                
-                if (data.site_off) {
-                    window.location.href = 'off.html';
-                }
-            } catch (e) {
-                console.error('Ошибка проверки статуса:', e);
-            }
-        }
-        
-        // Проверяем при загрузке
-        checkSiteStatus();
-        
-        // И каждые 2 секунды
-        setInterval(checkSiteStatus, 2000);
-    </script>
-
     <div class="container">
         <div class="header">
             <div class="avatar">
@@ -387,25 +386,31 @@
         <div class="content hidden" id="ordersTab">
             <div id="ordersList"></div>
         </div>
-
-        <!-- Подвал с адресом и временем -->
-        <div style="background: #8b1e1e; color: white; padding: 15px 20px; text-align: center; font-size: 14px; border-top: 2px solid #fff3cd; margin-top: 20px;">
-            <div style="display: flex; flex-direction: column; gap: 8px; max-width: 600px; margin: 0 auto;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span style="font-size: 18px;">🏠</span> 
-                    <span>пр-т Независимости, 58А</span>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span style="font-size: 18px;">⏰</span> 
-                    <span>09:00 – 20:00 (пн-сб)</span>
-                </div>
-            </div>
+        
+        <div class="footer">
+            <div>🏠 пр-т Независимости, 58А</div>
+            <div style="margin-top: 5px;">⏰ пн–сб 9:00 – 20:00</div>
         </div>
     </div>
 
     <script>
         // ============================================
-        // УНИКАЛЬНЫЙ ID ДЛЯ КАЖДОГО БРАУЗЕРА
+        // НАСТРОЙКИ
+        // ============================================
+        
+        const WORK_START = 9;
+        const WORK_END = 20;
+        const WORK_DAYS = [1, 2, 3, 4, 5, 6]; // пн-сб
+        
+        let menuItems = [];
+        let addons = [];
+        let cart = []; // [{ id, quantity, addons: [id1, id2] }]
+        let orders = [];
+        
+        const timeOptions = [15, 20, 25, 30, 35, 40, 45];
+        
+        // ============================================
+        // УНИКАЛЬНЫЙ ID КЛИЕНТА
         // ============================================
         
         function getClientId() {
@@ -413,83 +418,60 @@
             if (!clientId) {
                 clientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('client_id', clientId);
-                console.log('Новый клиент:', clientId);
             }
             return clientId;
         }
-
+        
         const CURRENT_CLIENT_ID = getClientId();
-        console.log('Текущий client_id:', CURRENT_CLIENT_ID);
         
         // ============================================
-        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ПРОВЕРКА РАБОЧЕГО ВРЕМЕНИ
         // ============================================
         
-        let menuItems = [];
-        let addons = [];
-        let cart = [];
-        let selectedAddons = [];
-        let orders = [];
-        
-        const timeOptions = [15, 20, 25, 30, 35, 40, 45];
-
-        // Рабочее время
-        const WORK_START = 9; // 09:00
-        const WORK_END = 20;   // 20:00
-        const WORK_DAYS = [1, 2, 3, 4, 5, 6]; // 1 = понедельник, 6 = суббота
+        function isWorkingTime() {
+            const now = new Date();
+            const currentDay = now.getDay();
+            const currentHour = now.getHours();
+            return WORK_DAYS.includes(currentDay) && currentHour >= WORK_START && currentHour < WORK_END;
+        }
         
         // ============================================
-        // ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE
+        // ЗАГРУЗКА ДАННЫХ
         // ============================================
         
         async function loadMenu() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('menu')
-                    .select('*')
-                    .eq('is_available', true);
-                
-                if (error) throw error;
-                menuItems = data || [];
-                renderMenu();
-            } catch (e) {
-                console.error('Ошибка загрузки меню:', e);
-            }
+            const { data, error } = await supabaseClient
+                .from('menu')
+                .select('*')
+                .eq('is_available', true);
+            
+            if (!error) menuItems = data || [];
         }
         
         async function loadAddons() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('addons')
-                    .select('*')
-                    .eq('is_available', true);
-                
-                if (error) throw error;
-                addons = data || [];
-            } catch (e) {
-                console.error('Ошибка загрузки добавок:', e);
-            }
+            const { data, error } = await supabaseClient
+                .from('addons')
+                .select('*')
+                .eq('is_available', true);
+            
+            if (!error) addons = data || [];
         }
         
         async function loadOrders() {
-            try {
-                // ПОКАЗЫВАЕМ ТОЛЬКО ЗАКАЗЫ ЭТОГО КЛИЕНТА
-                const { data, error } = await supabaseClient
-                    .from('orders')
-                    .select('*')
-                    .eq('client_id', CURRENT_CLIENT_ID)  // ← фильтр по текущему клиенту
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
+            const { data, error } = await supabaseClient
+                .from('orders')
+                .select('*')
+                .eq('client_id', CURRENT_CLIENT_ID)
+                .order('created_at', { ascending: false });
+            
+            if (!error) {
                 orders = data || [];
                 renderOrders();
-            } catch (e) {
-                console.error('Ошибка загрузки заказов:', e);
             }
         }
         
         // ============================================
-        // РАБОТА С ЗАКАЗАМИ
+        // НОМЕР ЗАКАЗА
         // ============================================
         
         function getTodayDate() {
@@ -497,221 +479,34 @@
             return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
         
-    async function getNextOrderNumber() {
-        const today = getTodayDate();
-
-        // Получаем ВСЕ заказы за сегодня (включая выполненные)
-        const { data, error } = await supabaseClient
-            .from('orders')
-            .select('order_number')
-            .gte('created_at', today + ' 00:00:00')
-            .lt('created_at', today + ' 23:59:59');
-
-        if (error) {
-            console.error('Ошибка получения номера:', error);
-            return 1;
-        }
-
-        // Если есть заказы за сегодня — берём максимальный номер + 1
-        if (data && data.length > 0) {
+        async function getNextOrderNumber() {
+            const today = getTodayDate();
+            
+            const { data, error } = await supabaseClient
+                .from('orders')
+                .select('order_number')
+                .gte('created_at', today + ' 00:00:00')
+                .lt('created_at', today + ' 23:59:59');
+            
+            if (error || !data || data.length === 0) return 1;
+            
             const numbers = data.map(o => o.order_number);
             return Math.max(...numbers) + 1;
         }
-
-        // Если заказов сегодня нет — начинаем с 1
-        return 1;
-    }
-        
-        async function placeOrder() {
-            const now = new Date();
-            const currentHour = now.getHours();
-            if (currentHour < WORK_START || currentHour >= WORK_END) {
-                alert('⏰ Заказы принимаются только с 09:00 до 20:00');
-                return;
-            }
-
-            if (cart.length === 0) return;
-            
-            const time = document.getElementById('orderTime').value;
-            const payment = document.getElementById('orderPayment').value;
-            
-            const orderNumber = await getNextOrderNumber();
-            
-            let total = cart.reduce((sum, item) => {
-                const menuItem = menuItems.find(m => m.id === item.id);
-                return sum + (menuItem.price * item.quantity);
-            }, 0);
-            
-            selectedAddons.forEach(addonId => {
-                const addon = addons.find(a => a.id === addonId);
-                total += addon.price;
-            });
-            
-            const order = {
-                order_number: orderNumber,
-                items: cart,
-                addons: selectedAddons,
-                total: total,
-                payment_method: payment,
-                pickup_time: parseInt(time),
-                status: 'pending',
-                client_id: CURRENT_CLIENT_ID  // ← ОТПРАВЛЯЕМ ID КЛИЕНТА
-            };
-            
-            try {
-                const { error } = await supabaseClient
-                    .from('orders')
-                    .insert([order]);
-                
-                if (error) throw error;
-                
-                cart = [];
-                selectedAddons = [];
-                switchTab('orders');
-                loadOrders(); // Перезагружаем список заказов
-            } catch (e) {
-                console.error('Ошибка создания заказа:', e);
-                alert('Не удалось создать заказ. Попробуйте еще раз.');
-            }
-        }
         
         // ============================================
-        // РЕНДЕР ИНТЕРФЕЙСА
+        // РАБОТА С КОРЗИНОЙ
         // ============================================
-        
-        function renderMenu() {
-            const menuTab = document.getElementById('menuTab');
-            let html = '';
-            
-            menuItems.forEach(item => {
-                const cartItem = cart.find(c => c.id === item.id);
-                const quantity = cartItem ? cartItem.quantity : 0;
-                
-                html += `
-                    <div class="menu-item">
-                        <img src="${item.image_url || 'images/placeholder.jpg'}" alt="${item.name}" class="menu-item-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 80 80\'><rect width=\'80\' height=\'80\' fill=\'%23f0f0f0\'/><text x=\'40\' y=\'45\' font-size=\'30\' text-anchor=\'middle\' fill=\'%23999\'>🥙</text></svg>'">
-                        <div class="menu-info">
-                            <h3>${item.name}</h3>
-                            <div class="price">${item.price} BYN</div>
-                        </div>
-                        <div class="quantity-control">
-                            <button class="quantity-btn" onclick="updateCart(${item.id}, -1)">-</button>
-                            <span class="quantity" id="qty-${item.id}">${quantity}</span>
-                            <button class="quantity-btn" onclick="updateCart(${item.id}, 1)">+</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            // Проверка рабочего времени
-            const now = new Date();
-            const currentHour = now.getHours();
-            const isWorkingTime = currentHour >= WORK_START && currentHour < WORK_END;
-
-            if (!isWorkingTime && cart.length > 0) {
-                html += '<div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center; border: 1px solid #c62828;">';
-                html += '⏰ Сейчас нерабочее время (20:00 – 09:00). Заказы принимаются только с 09:00 до 20:00.';
-                html += '</div>';
-                
-                // Очищаем корзину, чтобы нельзя было заказать
-                cart = [];
-                selectedAddons = [];
-            }
-
-            if (cart.length > 0) {
-                html += '<div class="cart-section">';
-                html += '<h3>Корзина</h3>';
-                
-                let total = 0;
-                cart.forEach(item => {
-                    const menuItem = menuItems.find(m => m.id === item.id);
-                    const itemTotal = menuItem.price * item.quantity;
-                    total += itemTotal;
-                    
-                    html += `
-                        <div class="cart-item">
-                            <span>${menuItem.name} x${item.quantity}</span>
-                            <span>${itemTotal} BYN</span>
-                        </div>
-                    `;
-                });
-                
-                if (selectedAddons.length > 0) {
-                    html += '<div style="margin: 10px 0; padding: 10px 0; border-top: 1px dashed #ddd;"><span style="font-weight: bold;">Добавки:</span></div>';
-                    selectedAddons.forEach(addonId => {
-                        const addon = addons.find(a => a.id === addonId);
-                        if (addon.price > 0) {
-                            total += addon.price;
-                            html += `
-                                <div class="cart-item">
-                                    <span>➕ ${addon.name}</span>
-                                    <span>+${addon.price} BYN</span>
-                                </div>
-                            `;
-                        }
-                    });
-                }
-                
-                html += `<div class="cart-total">Итого: ${total} BYN</div>`;
-                
-                html += `
-                    <div class="order-form">
-                        <div class="form-group">
-                            <label>⏱ Когда придете?</label>
-                            <select id="orderTime">
-                                ${timeOptions.map(t => `<option value="${t}">Через ${t} мин</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>💰 Оплата</label>
-                            <select id="orderPayment">
-                                <option value="Наличные">Наличными в заведении</option>
-                                <option value="Карта">Картой в заведении</option>
-                            </select>
-                        </div>
-                        <div style="margin: 15px 0;">
-                            <label style="display: block; margin-bottom: 10px; font-weight: bold;">🍄 Добавки:</label>
-                            <div class="addons-grid">
-                `;
-                
-                addons.forEach(addon => {
-                    const isChecked = selectedAddons.includes(addon.id);
-                    html += `
-                        <div class="addon-item">
-                            <input type="checkbox" id="addon-${addon.id}" ${isChecked ? 'checked' : ''} onchange="toggleAddon(${addon.id})">
-                            <label for="addon-${addon.id}" style="margin: 0; flex: 1;">${addon.name} ${addon.price > 0 ? '(+'+addon.price+' BYN)' : ''}</label>
-                        </div>
-                    `;
-                });
-                
-                html += `
-                            </div>
-                        </div>
-                        <button class="order-btn" onclick="placeOrder()">ЗАКАЗАТЬ</button>
-                    </div>
-                `;
-                
-                html += '</div>';
-            }
-            
-            menuTab.innerHTML = html;
-        }
-        
-        function toggleAddon(addonId) {
-            const index = selectedAddons.indexOf(addonId);
-            if (index === -1) {
-                selectedAddons.push(addonId);
-            } else {
-                selectedAddons.splice(index, 1);
-            }
-            renderMenu();
-        }
         
         function updateCart(itemId, delta) {
             const index = cart.findIndex(c => c.id === itemId);
             
             if (index === -1 && delta > 0) {
-                cart.push({ id: itemId, quantity: 1 });
+                cart.push({ 
+                    id: itemId, 
+                    quantity: 1,
+                    addons: [] 
+                });
             } else if (index !== -1) {
                 const newQty = cart[index].quantity + delta;
                 if (newQty <= 0) {
@@ -722,6 +517,192 @@
             }
             
             renderMenu();
+        }
+        
+        function toggleItemAddon(itemId, addonId) {
+            const item = cart.find(c => c.id === itemId);
+            if (!item) return;
+            
+            const index = item.addons.indexOf(addonId);
+            if (index === -1) {
+                item.addons.push(addonId);
+            } else {
+                item.addons.splice(index, 1);
+            }
+            
+            renderMenu();
+        }
+        
+        function getItemTotal(item) {
+            const menuItem = menuItems.find(m => m.id === item.id);
+            if (!menuItem) return 0;
+            
+            let total = menuItem.price * item.quantity;
+            
+            item.addons.forEach(addonId => {
+                const addon = addons.find(a => a.id === addonId);
+                if (addon) total += addon.price * item.quantity;
+            });
+            
+            return total;
+        }
+        
+        function getCartTotal() {
+            return cart.reduce((sum, item) => sum + getItemTotal(item), 0);
+        }
+        
+        // ============================================
+        // ОФОРМЛЕНИЕ ЗАКАЗА
+        // ============================================
+        
+        async function placeOrder() {
+            if (cart.length === 0) return;
+            
+            if (!isWorkingTime()) {
+                alert('⏰ Заказы принимаются только с понедельника по субботу с 9:00 до 20:00');
+                return;
+            }
+            
+            const time = document.getElementById('orderTime').value;
+            const payment = document.getElementById('orderPayment').value;
+            const orderNumber = await getNextOrderNumber();
+            
+            const order = {
+                order_number: orderNumber,
+                items: cart.map(item => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                    addons: item.addons
+                })),
+                total: getCartTotal(),
+                payment_method: payment,
+                pickup_time: parseInt(time),
+                status: 'pending',
+                client_id: CURRENT_CLIENT_ID
+            };
+            
+            const { error } = await supabaseClient.from('orders').insert([order]);
+            
+            if (!error) {
+                cart = [];
+                switchTab('orders');
+                loadOrders();
+            }
+        }
+        
+        // ============================================
+        // РЕНДЕР
+        // ============================================
+        
+        function renderMenu() {
+            const menuTab = document.getElementById('menuTab');
+            let html = '';
+            
+            const workingNow = isWorkingTime();
+            
+            menuItems.forEach(item => {
+                const cartItem = cart.find(c => c.id === item.id);
+                const quantity = cartItem ? cartItem.quantity : 0;
+                
+                html += `
+                    <div class="menu-item">
+                        <div class="menu-item-row">
+                            <img src="${item.image_url || 'images/placeholder.jpg'}" alt="${item.name}" class="menu-item-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 80 80\'><rect width=\'80\' height=\'80\' fill=\'%23f0f0f0\'/><text x=\'40\' y=\'45\' font-size=\'30\' text-anchor=\'middle\' fill=\'%23999\'>🥙</text></svg>'">
+                            <div class="menu-info">
+                                <h3>${item.name}</h3>
+                                <div class="price">${item.price} BYN</div>
+                            </div>
+                            <div class="quantity-control">
+                                <button class="quantity-btn" onclick="updateCart(${item.id}, -1)">-</button>
+                                <span class="quantity">${quantity}</span>
+                                <button class="quantity-btn" onclick="updateCart(${item.id}, 1)">+</button>
+                            </div>
+                        </div>
+                `;
+                
+                if (item.has_addons && addons.length > 0) {
+                    html += '<div class="item-addons">';
+                    html += '<div class="addons-title">Добавки:</div>';
+                    html += '<div class="addons-grid">';
+                    
+                    addons.forEach(addon => {
+                        const checked = cartItem && cartItem.addons.includes(addon.id);
+                        html += `
+                            <div class="addon-item">
+                                <input type="checkbox" 
+                                    ${checked ? 'checked' : ''} 
+                                    onchange="toggleItemAddon(${item.id}, ${addon.id})"
+                                    ${!cartItem ? 'disabled' : ''}>
+                                <span>${addon.name} ${addon.price > 0 ? '+'+addon.price+' BYN' : ''}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div></div>';
+                }
+                
+                html += '</div>';
+            });
+            
+            if (cart.length > 0) {
+                html += '<div class="cart-section">';
+                html += '<h3>Корзина</h3>';
+                
+                cart.forEach(item => {
+                    const menuItem = menuItems.find(m => m.id === item.id);
+                    const itemTotal = getItemTotal(item);
+                    
+                    html += `
+                        <div class="cart-item">
+                            <div class="cart-item-info">
+                                <div class="cart-item-name">${menuItem.name} x${item.quantity}</div>
+                    `;
+                    
+                    if (item.addons.length > 0) {
+                        const addonNames = item.addons.map(addonId => {
+                            const a = addons.find(a => a.id === addonId);
+                            return a ? a.name : '';
+                        }).filter(Boolean).join(', ');
+                        
+                        html += `<div class="cart-item-addons">➕ ${addonNames}</div>`;
+                    }
+                    
+                    html += `
+                            </div>
+                            <div class="cart-item-price">${itemTotal} BYN</div>
+                        </div>
+                    `;
+                });
+                
+                html += `<div class="cart-total">Итого: ${getCartTotal()} BYN</div>`;
+                
+                if (!workingNow) {
+                    html += '<div class="working-hours-warning">⏰ Сейчас нерабочее время. Заказы принимаются только пн–сб 9:00–20:00</div>';
+                } else {
+                    html += `
+                        <div class="order-form">
+                            <div class="form-group">
+                                <label>⏱ Когда придете?</label>
+                                <select id="orderTime">
+                                    ${timeOptions.map(t => `<option value="${t}">Через ${t} мин</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>💰 Оплата</label>
+                                <select id="orderPayment">
+                                    <option value="Наличные">Наличными в заведении</option>
+                                    <option value="Карта">Картой в заведении</option>
+                                </select>
+                            </div>
+                            <button class="order-btn" onclick="placeOrder()">ЗАКАЗАТЬ</button>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+            }
+            
+            menuTab.innerHTML = html;
         }
         
         function renderOrders() {
@@ -736,9 +717,7 @@
             
             let html = '<div class="orders-list">';
             
-            const recentOrders = activeOrders.slice(0, 5);
-            
-            recentOrders.forEach(order => {
+            activeOrders.forEach(order => {
                 let statusClass = 'status-pending';
                 let statusText = 'Ожидается';
                 
@@ -761,18 +740,19 @@
                 
                 order.items.forEach(item => {
                     const menuItem = menuItems.find(m => m.id === item.id);
-                    html += `<div>${menuItem ? menuItem.name : 'Шаурма'} x${item.quantity} = ${menuItem ? menuItem.price * item.quantity : 0} BYN</div>`;
-                });
-                
-                if (order.addons && order.addons.length > 0) {
-                    html += '<div class="order-addons">➕ Добавки: ';
-                    const addonNames = order.addons.map(addonId => {
-                        const addon = addons.find(a => a.id === addonId);
-                        return addon ? addon.name : '';
-                    }).filter(Boolean).join(', ');
-                    html += addonNames;
+                    html += `<div class="order-item-row">${menuItem.name} x${item.quantity} = ${menuItem.price * item.quantity} BYN`;
+                    
+                    if (item.addons && item.addons.length > 0) {
+                        const addonNames = item.addons.map(addonId => {
+                            const a = addons.find(a => a.id === addonId);
+                            return a ? a.name : '';
+                        }).filter(Boolean).join(', ');
+                        
+                        html += `<div class="order-item-addons">➕ ${addonNames}</div>`;
+                    }
+                    
                     html += '</div>';
-                }
+                });
                 
                 html += `
                         </div>
@@ -804,14 +784,15 @@
         }
         
         // ============================================
-        // ПОЛЛИНГ ОБНОВЛЕНИЙ
+        // ПОЛЛИНГ
         // ============================================
         
-        function startPolling() {
-            setInterval(async () => {
-                await loadOrders();
-            }, 3000);
-        }
+        setInterval(async () => {
+            await loadOrders();
+            if (document.getElementById('menuTab').classList.contains('hidden') === false) {
+                renderMenu();
+            }
+        }, 3000);
         
         // ============================================
         // ИНИЦИАЛИЗАЦИЯ
@@ -822,38 +803,11 @@
             await loadAddons();
             await loadOrders();
             renderMenu();
-            startPolling();
         }
         
-        // Ждём загрузки Supabase и запускаем
-        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        if (typeof supabaseClient !== 'undefined') {
             init();
-        } else {
-            console.error('Supabase не подключен');
-            setTimeout(() => {
-                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    init();
-                }
-            }, 1000);
         }
-
-        
-        async function checkSiteStatus() {
-            try {
-                const { data } = await supabaseClient
-                    .from('settings')
-                    .select('site_off')
-                    .eq('id', 1)
-                    .single();
-                
-                if (data?.site_off) {
-                    window.location.href = 'off.html';
-                }
-            } catch (e) {}
-        }
-        checkSiteStatus();
-        setInterval(checkSiteStatus, 2000);
-    
     </script>
 </body>
 </html>
