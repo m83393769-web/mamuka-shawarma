@@ -349,25 +349,12 @@
 
     <div class="container">
         <div class="header">
-            <!-- Верхний ряд: аватарка + название -->
-            <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
-                <div class="avatar">
-                    <img src="images/mamuka.jpg" alt="Мамука" onerror="this.style.display='none'; this.parentElement.innerHTML='🥙';">
-                </div>
-                <div class="header-text">
-                    <h1>ШАУРМА ОТ МАМУКИ</h1>
-                    <p>🥙 Самая вкусная у колледжа</p>
-                </div>
+            <div class="avatar">
+                <img src="images/mamuka.jpg" alt="Мамука" onerror="this.style.display='none'; this.parentElement.innerHTML='🥙';">
             </div>
-            
-            <!-- Нижний ряд: адрес и время работы -->
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
-                <span style="display: flex; align-items: center; gap: 5px;">
-                    <span style="font-size: 16px;">🏠</span> пр-т Независимости, 58А
-                </span>
-                <span style="display: flex; align-items: center; gap: 5px;">
-                    <span style="font-size: 16px;">⏰</span> 10:00–22:00
-                </span>
+            <div class="header-text">
+                <h1>ШАУРМА ОТ МАМУКИ</h1>
+                <p>🥙 Самая вкусная у колледжа</p>
             </div>
         </div>
         
@@ -379,6 +366,20 @@
         <div class="content" id="menuTab"></div>
         <div class="content hidden" id="ordersTab">
             <div id="ordersList"></div>
+        </div>
+
+        <!-- Подвал с адресом и временем -->
+        <div style="background: #8b1e1e; color: white; padding: 15px 20px; text-align: center; font-size: 14px; border-top: 2px solid #fff3cd; margin-top: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; max-width: 600px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span style="font-size: 18px;">🏠</span> 
+                    <span>пр-т Независимости, 58А</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span style="font-size: 18px;">⏰</span> 
+                    <span>09:00 – 20:00 (пн-сб)</span>
+                </div>
+            </div>
         </div>
     </div>
 
