@@ -349,22 +349,24 @@
 
     <div class="container">
         <div class="header">
-            <div class="avatar">
-                <img src="images/mamuka.jpg" alt="Мамука" onerror="this.style.display='none'; this.parentElement.innerHTML='🥙';">
+            <!-- Верхний ряд: аватарка + название -->
+            <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
+                <div class="avatar">
+                    <img src="images/mamuka.jpg" alt="Мамука" onerror="this.style.display='none'; this.parentElement.innerHTML='🥙';">
+                </div>
+                <div class="header-text">
+                    <h1>ШАУРМА ОТ МАМУКИ</h1>
+                    <p>🥙 Самая вкусная у колледжа</p>
+                </div>
             </div>
-            <div class="header-text">
-                <h1>ШАУРМА ОТ МАМУКИ</h1>
-                <p>🥙 Самая вкусная у колледжа</p>
-            </div>
-           <!-- Адрес и время работы -->
-            <div style="background: #f8f9fa; padding: 15px 20px; border-bottom: 2px solid #8b1e1e; font-size: 15px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-weight: 600; color: #333;">
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <span style="color: #8b1e1e; font-size: 18px;">🏠</span> 
-                    пр-т Независимости, 58А
+            
+            <!-- Нижний ряд: адрес и время работы -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 14px;">
+                <span style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 16px;">🏠</span> пр-т Независимости, 58А
                 </span>
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <span style="color: #8b1e1e; font-size: 18px;">⏰</span> 
-                    09:00 – 20:00
+                <span style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 16px;">⏰</span> 10:00–22:00
                 </span>
             </div>
         </div>
