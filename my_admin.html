@@ -432,6 +432,7 @@
             const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
             const btn = document.getElementById('siteToggleBtn');
             const statusText = document.getElementById('siteStatusText');
+            
             if (data?.site_off) {
                 btn.textContent = '🔴 САЙТ ОТКЛЮЧЕН';
                 btn.className = 'toggle-btn off';
@@ -448,7 +449,7 @@
             const { data } = await supabaseClient.from('settings').select('site_off').eq('id', 1).single();
             const newStatus = !data.site_off;
             await supabaseClient.from('settings').update({ site_off: newStatus }).eq('id', 1);
-            window.updateSiteToggleButton();
+            await window.updateSiteToggleButton();  // <<<--- ДОБАВЬ AWAIT
         };
 
         // ============================================
