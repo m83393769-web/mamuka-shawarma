@@ -343,7 +343,7 @@
     <script>
         // Проверка, включен ли сайт
         if (localStorage.getItem('siteOff') === 'true') {
-            document.body.innerHTML = '<div style="background: #8b1e1e; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px;"><div><h1 style="font-size: 32px; margin-bottom: 20px;">🥙 Шаурма от Мамуки</h1><p style="font-size: 18px;">Сайт временно закрыт. Загляните позже!</p></div></div>';
+            window.location.href = 'off.html';
         }
     </script>
 
@@ -786,6 +786,22 @@
                 }
             }, 1000);
         }
+    </script>
+    <!-- Мониторинг отключения сайта -->
+    <script>
+        function checkSiteStatus() {
+            if (localStorage.getItem('siteOff') === 'true') {
+                window.location.href = 'off.html';
+            }
+        }
+        
+        setInterval(checkSiteStatus, 1000);
+        
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'siteOff' && e.newValue === 'true') {
+                window.location.href = 'off.html';
+            }
+        });
     </script>
 </body>
 </html>
