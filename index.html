@@ -781,9 +781,6 @@
         
         setInterval(async () => {
             await loadOrders();
-            if (document.getElementById('menuTab').classList.contains('hidden') === false) {
-                renderMenu();
-            }
         }, 3000);
         
         // ============================================
