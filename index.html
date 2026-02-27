@@ -162,44 +162,6 @@
             text-align: center;
         }
         
-        .item-addons {
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px dashed #ddd;
-        }
-        
-        .addons-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #555;
-        }
-        
-        .addons-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        
-        .addon-item {
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 8px 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-        
-        .cart-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-        }
-        
         .cart-item {
             display: flex;
             justify-content: space-between;
@@ -363,6 +325,27 @@
             text-align: center;
             border: 1px solid #c62828;
         }
+        
+        .cart-item-addons-selector {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .addons-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .addon-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -404,7 +387,7 @@
         
         let menuItems = [];
         let addons = [];
-        let cart = []; // [{ id, quantity, addons: [id1, id2] }]
+        let cart = []; // [{ id, quantity, addons }]
         let orders = [];
         
         const timeOptions = [15, 20, 25, 30, 35, 40, 45];
@@ -498,36 +481,43 @@
         // РАБОТА С КОРЗИНОЙ
         // ============================================
         
-        function updateCart(itemId, delta) {
-            const index = cart.findIndex(c => c.id === itemId);
+        function addToCart(itemId) {
+            cart.push({ 
+                id: itemId, 
+                quantity: 1,
+                addons: [] 
+            });
+            renderMenu();
+        }
+        
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderMenu();
+        }
+        
+        function updateCartQuantity(index, delta) {
+            if (index < 0 || index >= cart.length) return;
             
-            if (index === -1 && delta > 0) {
-                cart.push({ 
-                    id: itemId, 
-                    quantity: 1,
-                    addons: [] 
-                });
-            } else if (index !== -1) {
-                const newQty = cart[index].quantity + delta;
-                if (newQty <= 0) {
-                    cart.splice(index, 1);
-                } else {
-                    cart[index].quantity = newQty;
-                }
+            const newQty = cart[index].quantity + delta;
+            if (newQty <= 0) {
+                cart.splice(index, 1);
+            } else {
+                cart[index].quantity = newQty;
             }
             
             renderMenu();
         }
         
-        function toggleItemAddon(itemId, addonId) {
-            const item = cart.find(c => c.id === itemId);
-            if (!item) return;
+        function toggleItemAddon(index, addonId) {
+            if (index < 0 || index >= cart.length) return;
             
-            const index = item.addons.indexOf(addonId);
-            if (index === -1) {
+            const item = cart[index];
+            const addonIndex = item.addons.indexOf(addonId);
+            
+            if (addonIndex === -1) {
                 item.addons.push(addonId);
             } else {
-                item.addons.splice(index, 1);
+                item.addons.splice(addonIndex, 1);
             }
             
             renderMenu();
@@ -600,10 +590,8 @@
             
             const workingNow = isWorkingTime();
             
+            // Меню
             menuItems.forEach(item => {
-                const cartItem = cart.find(c => c.id === item.id);
-                const quantity = cartItem ? cartItem.quantity : 0;
-                
                 html += `
                     <div class="menu-item">
                         <div class="menu-item-row">
@@ -613,49 +601,32 @@
                                 <div class="price">${item.price} BYN</div>
                             </div>
                             <div class="quantity-control">
-                                <button class="quantity-btn" onclick="updateCart(${item.id}, -1)">-</button>
-                                <span class="quantity">${quantity}</span>
-                                <button class="quantity-btn" onclick="updateCart(${item.id}, 1)">+</button>
+                                <button class="quantity-btn" onclick="addToCart(${item.id})">+</button>
                             </div>
                         </div>
+                    </div>
                 `;
-                
-                if (item.has_addons && addons.length > 0) {
-                    html += '<div class="item-addons">';
-                    html += '<div class="addons-title">Добавки:</div>';
-                    html += '<div class="addons-grid">';
-                    
-                    addons.forEach(addon => {
-                        const checked = cartItem && cartItem.addons.includes(addon.id);
-                        html += `
-                            <div class="addon-item">
-                                <input type="checkbox" 
-                                    ${checked ? 'checked' : ''} 
-                                    onchange="toggleItemAddon(${item.id}, ${addon.id})"
-                                    ${!cartItem ? 'disabled' : ''}>
-                                <span>${addon.name} ${addon.price > 0 ? '+'+addon.price+' BYN' : ''}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div></div>';
-                }
-                
-                html += '</div>';
             });
             
+            // Корзина
             if (cart.length > 0) {
                 html += '<div class="cart-section">';
                 html += '<h3>Корзина</h3>';
                 
-                cart.forEach(item => {
+                cart.forEach((item, index) => {
                     const menuItem = menuItems.find(m => m.id === item.id);
                     const itemTotal = getItemTotal(item);
                     
                     html += `
                         <div class="cart-item">
                             <div class="cart-item-info">
-                                <div class="cart-item-name">${menuItem.name} x${item.quantity}</div>
+                                <div class="cart-item-name">
+                                    ${menuItem.name} 
+                                    <button class="quantity-btn" style="width: 25px; height: 25px; font-size: 14px;" onclick="updateCartQuantity(${index}, -1)">-</button>
+                                    ${item.quantity}
+                                    <button class="quantity-btn" style="width: 25px; height: 25px; font-size: 14px;" onclick="updateCartQuantity(${index}, 1)">+</button>
+                                    <button style="background: none; border: none; color: #999; cursor: pointer; margin-left: 10px;" onclick="removeFromCart(${index})">✕</button>
+                                </div>
                     `;
                     
                     if (item.addons.length > 0) {
@@ -665,6 +636,27 @@
                         }).filter(Boolean).join(', ');
                         
                         html += `<div class="cart-item-addons">➕ ${addonNames}</div>`;
+                    }
+                    
+                    // Добавки для этой позиции
+                    if (menuItem.has_addons && addons.length > 0) {
+                        html += '<div class="cart-item-addons-selector">';
+                        html += '<div style="font-size: 13px; margin-bottom: 5px;">Добавки:</div>';
+                        html += '<div class="addons-grid">';
+                        
+                        addons.forEach(addon => {
+                            const checked = item.addons.includes(addon.id);
+                            html += `
+                                <div class="addon-item">
+                                    <input type="checkbox" 
+                                        ${checked ? 'checked' : ''} 
+                                        onchange="toggleItemAddon(${index}, ${addon.id})">
+                                    <span>${addon.name} ${addon.price > 0 ? '+'+addon.price+' BYN' : ''}</span>
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div></div>';
                     }
                     
                     html += `
