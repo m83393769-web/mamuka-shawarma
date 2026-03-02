@@ -545,5 +545,30 @@
             };
         </script>
 
+
+
+       <audio id="orderSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" preload="auto"></audio>
+
+        <script>
+        let lastOrderIds = new Set();
+
+        setInterval(async () => {
+            try {
+                const { data } = await supabaseClient.from('orders').select('id');
+                const currentIds = new Set(data.map(o => o.id));
+                
+                // Если появились новые id
+                if (lastOrderIds.size > 0 && currentIds.size > lastOrderIds.size) {
+                    document.getElementById('orderSound').play().catch(e => console.log('Автовоспроизведение заблокировано'));
+                }
+                
+                lastOrderIds = currentIds;
+            } catch (e) {
+                console.error('Ошибка при проверке заказов:', e);
+            }
+        }, 3000);
+        </script>
+
+
 </body>
 </html>
