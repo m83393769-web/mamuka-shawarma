@@ -798,5 +798,22 @@
             init();
         }
     </script>
+
+
+    <script>
+    let lastStatus = {};
+    setInterval(async () => {
+        const { data } = await supabaseClient.from('orders').select('*').eq('client_id', CURRENT_CLIENT_ID);
+        data.forEach(order => {
+            if (order.status === 'ready' && lastStatus[order.id] !== 'ready') {
+                alert(`✅ Заказ #${order.order_number} готов! Можно забирать.`);
+                if (navigator.vibrate) navigator.vibrate(500);
+            }
+            lastStatus[order.id] = order.status;
+        });
+    }, 3000);
+    </script>
+
+
 </body>
 </html>
